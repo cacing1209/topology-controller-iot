@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 
-interface Props { title: string; subtitle: string }
+interface Props {
+  title: string;
+  subtitle: string;
+  onOpenTutorial?: () => void;
+}
 
-export function Topbar({ title, subtitle }: Props) {
+export function Topbar({ title, subtitle, onOpenTutorial }: Props) {
   const { state } = useStore();
   const [now, setNow] = useState(() => new Date());
 
@@ -33,6 +37,17 @@ export function Topbar({ title, subtitle }: Props) {
         <div className="network-pill mono" style={{ minWidth: 100, justifyContent: 'center' }}>
           {now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
+        {onOpenTutorial && (
+          <button
+            className="help-btn"
+            onClick={onOpenTutorial}
+            title="Buka panduan simulasi"
+            aria-label="Buka panduan"
+          >
+            <span aria-hidden>?</span>
+            <span className="help-btn-label">Panduan</span>
+          </button>
+        )}
       </div>
     </header>
   );

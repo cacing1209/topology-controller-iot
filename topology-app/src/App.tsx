@@ -9,6 +9,7 @@ import { Controllers } from './pages/Controllers';
 import { Lockers } from './pages/Lockers';
 import { Classes } from './pages/Classes';
 import { Logs } from './pages/Logs';
+import { Tutorial, hasSeenTutorial } from './components/Tutorial';
 import type { Page } from './types';
 
 const TITLES: Record<Page, { title: string; subtitle: string }> = {
@@ -23,6 +24,7 @@ const TITLES: Record<Page, { title: string; subtitle: string }> = {
 function Shell() {
   const [page, setPage] = useState<Page>('topology');
   const [selectedController, setSelectedController] = useState<string | null>(null);
+  const [showTutorial, setShowTutorial] = useState<boolean>(() => !hasSeenTutorial());
 
   const navigate = (p: Page) => setPage(p);
 
@@ -30,7 +32,11 @@ function Shell() {
     <div className="app">
       <Sidebar active={page} onNavigate={navigate} />
       <div className="main">
-        <Topbar title={TITLES[page].title} subtitle={TITLES[page].subtitle} />
+        <Topbar
+          title={TITLES[page].title}
+          subtitle={TITLES[page].subtitle}
+          onOpenTutorial={() => setShowTutorial(true)}
+        />
         <div className="content">
           {page === 'topology'    && <Topology />}
           {page === 'discovery'   && <Discovery onDone={() => navigate('topology')} />}
@@ -40,6 +46,12 @@ function Shell() {
           {page === 'logs'        && <Logs />}
         </div>
       </div>
+      {showTutorial && (
+        <Tutorial
+          onClose={() => setShowTutorial(false)}
+          onNavigate={navigate}
+        />
+      )}
     </div>
   );
 }

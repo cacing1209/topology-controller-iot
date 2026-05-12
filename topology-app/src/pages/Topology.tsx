@@ -50,7 +50,7 @@ export function Topology() {
             <span className="item"><span style={{ width: 18, height: 6, borderTop: '1.5px dashed rgba(74,222,128,0.7)' }} /> Active link</span>
           </div>
 
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+          <svg viewBox={`-40 -40 ${W + 80} ${H + 80}`} preserveAspectRatio="xMidYMid meet">
             <defs>
               <radialGradient id="srv-grad">
                 <stop offset="0%" stopColor="#0e9d92" />
@@ -95,6 +95,33 @@ export function Topology() {
               />
             ))}
 
+            {/* Animated data packets server <-> controller (online only) */}
+            {layout.map(({ c, x, y }, idx) => {
+              if (c.status !== 'online') return null;
+              const dur = 2.2 + (idx % 3) * 0.35;
+              const delay = (idx * 0.4) % dur;
+              return (
+                <g key={`pkt-${c.id}`}>
+                  <circle r="3" className="tpacket out">
+                    <animateMotion
+                      dur={`${dur}s`}
+                      begin={`-${delay}s`}
+                      repeatCount="indefinite"
+                      path={`M ${cx} ${cy} L ${x} ${y}`}
+                    />
+                  </circle>
+                  <circle r="2.4" className="tpacket in">
+                    <animateMotion
+                      dur={`${dur + 0.6}s`}
+                      begin={`-${(delay + 1) % (dur + 0.6)}s`}
+                      repeatCount="indefinite"
+                      path={`M ${x} ${y} L ${cx} ${cy}`}
+                    />
+                  </circle>
+                </g>
+              );
+            })}
+
             {/* Controllers + their lockers */}
             {layout.map(({ c, x, y, angle }) => {
               const lockers = state.lockers.filter(l => l.controllerId === c.id);
@@ -126,6 +153,9 @@ export function Topology() {
                     const a = arcStart + t * arcSpan;
                     const lx = x + Math.cos(a) * lockerR;
                     const ly = y + Math.sin(a) * lockerR;
+                    const sx = x + Math.cos(a) * outwardR;
+                    const sy = y + Math.sin(a) * outwardR;
+                    const animate = c.status === 'online' && (l.status === 'occupied' || l.status === 'opening');
                     return (
                       <g
                         key={l.id}
@@ -134,12 +164,21 @@ export function Topology() {
                         style={{ cursor: 'pointer' }}
                       >
                         <line
-                          x1={x + Math.cos(a) * outwardR}
-                          y1={y + Math.sin(a) * outwardR}
+                          x1={sx} y1={sy}
                           x2={lx} y2={ly}
                           stroke={l.studentId ? 'rgba(34,211,238,0.4)' : 'rgba(120,160,255,0.18)'}
                           strokeWidth="1"
                         />
+                        {animate && (
+                          <circle r="1.8" className={`tpacket ${l.status === 'opening' ? 'warn' : 'in'}`}>
+                            <animateMotion
+                              dur={`${1.4 + (i % 3) * 0.2}s`}
+                              begin={`-${(i * 0.3) % 1.4}s`}
+                              repeatCount="indefinite"
+                              path={`M ${sx} ${sy} L ${lx} ${ly}`}
+                            />
+                          </circle>
+                        )}
                         <rect
                           x={lx - 7} y={ly - 7} width="14" height="14" rx="3"
                           className={`tlocker ${l.status}`}
@@ -175,14 +214,9 @@ export function Topology() {
 
           {hover && <HoverCard hover={hover} />}
           {controllers.length === 0 && (
-            <div style={{
-              position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-              color: 'var(--text-mute)', textAlign: 'center', padding: 24,
-            }}>
-              <div>
-                <div style={{ fontSize: 14, marginBottom: 6, color: 'var(--text-dim)' }}>Belum ada controller pada topology.</div>
-                <div style={{ fontSize: 12 }}>Buka <b>Discovery</b> untuk memindai LAN port 8000.</div>
-              </div>
+            <div className="topo-empty">
+              <div className="topo-empty-title">Belum ada controller pada topology</div>
+              <div className="topo-empty-sub">Buka <b>Discovery</b> untuk memindai LAN port 8000.</div>
             </div>
           )}
         </div>
@@ -282,7 +316,10 @@ function FlowStep({
 function FlowArrow({ protocol }: { protocol: string }) {
   return (
     <div className="flow-arrow" aria-hidden>
-      <div className="line" />
+      <div className="line">
+        <span className="pkt pkt-a" />
+        <span className="pkt pkt-b" />
+      </div>
       <div className="protocol">{protocol}</div>
     </div>
   );

@@ -102,7 +102,7 @@ export function Discovery({ onDone }: { onDone?: () => void }) {
           <div className="bar" style={{ width: `${state.scanProgress}%` }} />
         </div>
         <div className="row" style={{ marginTop: 10, color: 'var(--text-mute)', fontSize: 12 }}>
-          <IconWifi /> {state.scan === 'scanning'
+          <IconWifi style={{ width: 14, height: 14 }} /> {state.scan === 'scanning'
             ? `Probe paket dikirim · menunggu ACK (${state.scanProgress}%)`
             : state.scan === 'done'
               ? `Selesai · ${state.scanProgress}% completed`
