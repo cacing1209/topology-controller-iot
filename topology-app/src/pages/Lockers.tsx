@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { Modal } from '../components/Modal';
-import type { Locker, Student } from '../types';
-import { IconCard, IconPlay, IconRefresh } from '../components/Icons';
+import type { Locker } from '../types';
+import { IconCard, IconPlay } from '../components/Icons';
 
 interface Props {
   controllerId: string | null;
@@ -14,7 +14,6 @@ export function Lockers({ controllerId, onSelectController }: Props) {
   const ctl = state.controllers.find(c => c.id === controllerId) ?? state.controllers[0];
 
   const [editingLocker, setEditingLocker] = useState<Locker | null>(null);
-  const [uidInput, setUidInput] = useState('');
   const [studentChoice, setStudentChoice] = useState<string>('');
 
   useEffect(() => {
@@ -37,29 +36,14 @@ export function Lockers({ controllerId, onSelectController }: Props) {
 
   const startAssign = (l: Locker) => {
     setEditingLocker(l);
-    const stu = state.students.find(s => s.id === l.studentId);
-    setUidInput(stu?.uid ?? '');
-    setStudentChoice(stu?.id ?? '');
+    setStudentChoice(l.studentId ?? '');
   };
 
-  const onPickStudent = (id: string) => {
-    setStudentChoice(id);
-    const stu = state.students.find(s => s.id === id);
-    if (stu) setUidInput(stu.uid);
-  };
-
-  const matchByUid = (uid: string): Student | undefined =>
-    state.students.find(s => s.uid.replace(/\s/g, '').toLowerCase() === uid.replace(/\s/g, '').toLowerCase());
+  const chosenStudent = state.students.find(s => s.id === studentChoice);
 
   const saveAssign = () => {
-    if (!editingLocker) return;
-    let stu: Student | undefined;
-    if (studentChoice) stu = state.students.find(s => s.id === studentChoice);
-    if (!stu && uidInput.trim()) stu = matchByUid(uidInput);
-    if (!stu) {
-      log('denied', `UID "${uidInput}" tidak terdaftar — assign dibatalkan`, { controllerId: ctl.id, lockerId: editingLocker.id });
-      return;
-    }
+    const stu = chosenStudent;
+    if (!editingLocker || !stu) return;
     dispatch({ type: 'lockers/assignStudent', lockerId: editingLocker.id, studentId: stu.id });
     log('assign',
       `Locker #${editingLocker.slot} di-assign ke ${stu.name} (UID ${stu.uid})`,
@@ -179,7 +163,7 @@ export function Lockers({ controllerId, onSelectController }: Props) {
                 <button className="btn danger" onClick={unassign}>Unassign</button>
               )}
               <button className="btn ghost" onClick={() => setEditingLocker(null)}>Batal</button>
-              <button className="btn primary" onClick={saveAssign} disabled={!klass}>Simpan</button>
+              <button className="btn primary" onClick={saveAssign} disabled={!klass || !chosenStudent}>Simpan</button>
             </>
           }
         >
@@ -187,32 +171,21 @@ export function Lockers({ controllerId, onSelectController }: Props) {
             <div className="muted">Set kelas controller ini terlebih dahulu di halaman <b>Controllers</b>.</div>
           ) : (
             <>
-              <div className="kv" style={{ marginBottom: 6 }}>Scan / ketik UID kartu RFID:</div>
-              <div className="row" style={{ marginBottom: 12 }}>
-                <IconCard />
-                <input
-                  className="input mono"
-                  placeholder="AA BB CC DD"
-                  value={uidInput}
-                  onChange={(e) => setUidInput(e.target.value.toUpperCase())}
-                  autoFocus
-                  style={{ flex: 1 }}
-                />
-                <button className="btn ghost" onClick={() => setUidInput(simulateScan())} title="Simulasi scan kartu">
-                  <IconRefresh />
-                </button>
-              </div>
-
-              <div className="kv" style={{ marginBottom: 6 }}>Atau pilih siswa kelas {klass.name}:</div>
-              <select className="select" value={studentChoice} onChange={e => onPickStudent(e.target.value)}>
+              <div className="kv" style={{ marginBottom: 6 }}>Pilih siswa kelas {klass.name}:</div>
+              <select className="select" value={studentChoice} onChange={e => setStudentChoice(e.target.value)} autoFocus>
                 <option value="">— pilih siswa —</option>
                 {studentsInClass.map(s => (
                   <option key={s.id} value={s.id}>{s.name} · NIS {s.nis} · UID {s.uid}</option>
                 ))}
               </select>
 
+              <div className="row" style={{ marginTop: 12 }}>
+                <IconCard />
+                <span className="mono">{chosenStudent ? `UID ${chosenStudent.uid}` : '— pilih siswa untuk melihat UID —'}</span>
+              </div>
+
               <div className="kv" style={{ marginTop: 12, fontSize: 11.5 }}>
-                Total {studentsInClass.length} siswa di kelas ini. UID otomatis ter-isi saat memilih siswa.
+                Total {studentsInClass.length} siswa di kelas ini. UID kartu diambil dari data siswa (database).
               </div>
             </>
           )}
@@ -220,10 +193,4 @@ export function Lockers({ controllerId, onSelectController }: Props) {
       )}
     </div>
   );
-}
-
-function simulateScan(): string {
-  return Array.from({ length: 4 }, () =>
-    Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()
-  ).join(' ');
 }
